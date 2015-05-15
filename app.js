@@ -349,6 +349,12 @@ var betStore = new Store('bet', {
 
   Dispatcher.registerCallback('UPDATE_WAGER', function(newWager) {
     self.state.wager = _.merge({}, self.state.wager, newWager);
+
+    // Ensure user can afford balance
+    if (self.state.wager.num * 100 > worldStore.state.user.balance) {
+      self.state.wager.error = 'CANNOT_AFFORD_WAGER';
+    }
+
     self.emitter.emit('change', self.state);
   });
 
@@ -953,12 +959,6 @@ var BetBoxWager = React.createClass({
     // Ensure wagerString is a number
     if (Number.isNaN(n) || /[^\d]/.test(newWagerString)) {
       Dispatcher.sendAction('UPDATE_WAGER', { error: 'INVALID_WAGER' });
-      // Ensure wager is <= balance (in satoshis)
-    } else if (n * 100 > worldStore.state.user.balance) {
-      Dispatcher.sendAction('UPDATE_WAGER', {
-        error: 'CANNOT_AFFORD_WAGER',
-        num: n
-      });
     } else {
       // wagerString is valid
       Dispatcher.sendAction('UPDATE_WAGER', {
@@ -1068,6 +1068,17 @@ var BetBoxWager = React.createClass({
 });
 
 var BetBoxButton = React.createClass({
+  _onStoreChange: function() {
+    this.forceUpdate();
+  },
+  componentDidMount: function() {
+    worldStore.on('change', this._onStoreChange);
+    betStore.on('change', this._onStoreChange);
+  },
+  componentWillUnmount: function() {
+    worldStore.off('change', this._onStoreChange);
+    betStore.off('change', this._onStoreChange);
+  },
   getInitialState: function() {
     return { waitingForServer: false };
   },
@@ -1136,7 +1147,7 @@ var BetBoxButton = React.createClass({
     };
   },
   render: function() {
-  var innerNode;
+    var innerNode;
 
     // TODO: Create error prop for each input
     var error = betStore.state.wager.error || betStore.state.multiplier.error;

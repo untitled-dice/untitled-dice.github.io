@@ -620,9 +620,9 @@ var ChatBoxInput = React.createClass({
               onChange: this._onChange,
               onKeyPress: this._onKeyPress,
               onFocus: this._onFocus,
-              ref: 'messageInputRef'
+              ref: 'messageInputRef',
               // TODO: disable while fetching messages
-              //, disabled: props.chat.get('fetchingMessages')
+              disabled: !worldStore.state.user // || props.chat.get('fetchingMessages')
             }
           )
         ),
@@ -1613,6 +1613,7 @@ React.render(
 // If accessToken, then
 if (!worldStore.state.accessToken) {
   Dispatcher.sendAction('STOP_LOADING');
+  connectToChatServer();
 } else {
   // Load user from accessToken
   MoneyPot.getTokenInfo({
@@ -1626,6 +1627,7 @@ if (!worldStore.state.accessToken) {
     },
     complete: function() {
       Dispatcher.sendAction('STOP_LOADING');
+      connectToChatServer();
     }
   });
   // Get next bet hash
@@ -1639,65 +1641,70 @@ if (!worldStore.state.accessToken) {
 ////////////////////////////////////////////////////////////
 // Hook up to chat server
 
-socket = io(config.chat_uri);
+function connectToChatServer() {
+  console.log('Connecting to chat server. AccessToken:',
+              worldStore.state.accessToken);
 
-socket.on('connect', function() {
-  console.log('[socket] Connected');
+  socket = io(config.chat_uri);
 
-  socket.on('disconnect', function() {
-    console.log('[socket] Disconnected');
-  });
+  socket.on('connect', function() {
+    console.log('[socket] Connected');
 
-  socket.on('system_message', function(text) {
-    console.log('[socket] Received system message:', text);
-    Dispatcher.sendAction('NEW_SYSTEM_MESSAGE', text);
-  });
+    socket.on('disconnect', function() {
+      console.log('[socket] Disconnected');
+    });
 
-  // message is { text: String, user: { role: String, uname: String} }
-  socket.on('new_message', function(message) {
-    console.log('[socket] Received chat message:', message);
-    Dispatcher.sendAction('NEW_MESSAGE', message);
-  });
+    socket.on('system_message', function(text) {
+      console.log('[socket] Received system message:', text);
+      Dispatcher.sendAction('NEW_SYSTEM_MESSAGE', text);
+    });
 
-  socket.on('user_muted', function(data) {
-    console.log('[socket] User muted:', data);
-  });
+    // message is { text: String, user: { role: String, uname: String} }
+    socket.on('new_message', function(message) {
+      console.log('[socket] Received chat message:', message);
+      Dispatcher.sendAction('NEW_MESSAGE', message);
+    });
 
-  socket.on('user_unmuted', function(data) {
-    console.log('[socket] User unmuted:', data);
-  });
+    socket.on('user_muted', function(data) {
+      console.log('[socket] User muted:', data);
+    });
 
-  socket.on('user_joined', function(data) {
-    console.log('[socket] User joined:', data);
-  });
+    socket.on('user_unmuted', function(data) {
+      console.log('[socket] User unmuted:', data);
+    });
 
-  socket.on('user_left', function(data) {
-    console.log('[socket] User left:', data);
-  });
+    socket.on('user_joined', function(data) {
+      console.log('[socket] User joined:', data);
+    });
 
-  // Received when your client doesn't comply with chat-server api
-  socket.on('client_error', function(text) {
-    console.warn('[socket] Client error:', text);
-  });
+    socket.on('user_left', function(data) {
+      console.log('[socket] User left:', data);
+    });
 
-  // Once we connect to chat server, we send an auth message to join
-  // this app's lobby channel.
+    // Received when your client doesn't comply with chat-server api
+    socket.on('client_error', function(text) {
+      console.warn('[socket] Client error:', text);
+    });
 
-  // A hash of the current user's accessToken is only sent if you have one
-  var hashedToken;
-  if (worldStore.state.accessToken) {
-    hashedToken =  CryptoJS.SHA256(worldStore.state.accessToken).toString();
-  }
-  var authPayload = { app_id: config.app_id, hashed_token: hashedToken};
-  socket.emit('auth', authPayload, function(err, data) {
-    if (err) {
-      console.log('[socket] Auth failure:', err);
-      return;
+    // Once we connect to chat server, we send an auth message to join
+    // this app's lobby channel.
+
+    // A hash of the current user's accessToken is only sent if you have one
+    var hashedToken;
+    if (worldStore.state.accessToken) {
+      hashedToken =  CryptoJS.SHA256(worldStore.state.accessToken).toString();
     }
-    console.log('[socket] Auth success:', data);
-    Dispatcher.sendAction('INIT_CHAT', data);
+    var authPayload = { app_id: config.app_id, hashed_token: hashedToken};
+    socket.emit('auth', authPayload, function(err, data) {
+      if (err) {
+        console.log('[socket] Auth failure:', err);
+        return;
+      }
+      console.log('[socket] Auth success:', data);
+      Dispatcher.sendAction('INIT_CHAT', data);
+    });
   });
-});
+}
 
 // This function is passed to the recaptcha.js script and called when
 // the script loads and exposes the window.grecaptcha object. We pass it

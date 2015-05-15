@@ -350,9 +350,26 @@ var betStore = new Store('bet', {
   Dispatcher.registerCallback('UPDATE_WAGER', function(newWager) {
     self.state.wager = _.merge({}, self.state.wager, newWager);
 
+    var n = parseInt(self.state.wager.str, 10);
+
+    // If n is a number, ensure it's at least 1 bit
+    if (Number.isFinite(n)) {
+      n = Math.max(n, 1);
+      self.state.wager.str = n.toString();
+    }
+
+    // Ensure wagerString is a number
+    if (Number.isNaN(n) || /[^\d]/.test(n.toString())) {
+      self.state.wager.error = 'INVALID_WAGER';
     // Ensure user can afford balance
-    if (self.state.wager.num * 100 > worldStore.state.user.balance) {
+    } else if (n * 100 > worldStore.state.user.balance) {
       self.state.wager.error = 'CANNOT_AFFORD_WAGER';
+      self.state.wager.num = n;
+    } else {
+      // wagerString is valid
+      self.state.wager.error = null;
+      self.state.wager.str = n.toString();
+      self.state.wager.num = n;
     }
 
     self.emitter.emit('change', self.state);
@@ -935,7 +952,9 @@ var BetBoxWager = React.createClass({
     this.forceUpdate();
   },
   _onBalanceChange: function() {
-    this._validateWager(betStore.state.wager.str);
+    // Force validation when user logs in
+    // TODO: Re-force it when user refreshes
+    Dispatcher.sendAction('UPDATE_WAGER', {});
   },
   componentDidMount: function() {
     betStore.on('change', this._onStoreChange);
@@ -947,58 +966,20 @@ var BetBoxWager = React.createClass({
     worldStore.off('change', this._onStoreChange);
     worldStore.off('user_login', this._onBalanceChange);
   },
-  // Run this after currBet wager input is changed
-  // But first update `wagerString` state and pass in the
-  // new wagerString so that it can see that new value
-  //
-  // Note: This function is responsible for updating the `wager` state
-  _validateWager: function(newWagerString) {
-    var n = parseInt(newWagerString, 10);
-
-    // If n is a number, ensure it's at least 1 bit
-    if (Number.isFinite(n)) {
-      n = Math.max(n, 1);
-      Dispatcher.sendAction('UPDATE_WAGER', { str: n.toString() });
-    }
-
-    // Ensure wagerString is a number
-    if (Number.isNaN(n) || /[^\d]/.test(newWagerString)) {
-      Dispatcher.sendAction('UPDATE_WAGER', { error: 'INVALID_WAGER' });
-    // Ensure user can afford balance
-    } else if (n * 100 > worldStore.state.user.balance) {
-      // TODO: Handle in dispatcher
-      Dispatcher.sendAction('UPDATE_WAGER', { error: 'CANNOT_AFFORD_WAGER' });
-    } else {
-      // wagerString is valid
-      Dispatcher.sendAction('UPDATE_WAGER', {
-        error: null,
-        num: n
-      });
-    }
-  },
   _onWagerChange: function(e) {
     var str = e.target.value;
-    console.log('You entered', str, 'as your wager');
     Dispatcher.sendAction('UPDATE_WAGER', { str: str });
-
-    this._validateWager(str);
   },
   _onHalveWager: function() {
-    console.log('Halving wager...');
     var newWager = Math.round(betStore.state.wager.num / 2);
     Dispatcher.sendAction('UPDATE_WAGER', { str: newWager.toString() });
-    this._validateWager(newWager.toString());
   },
   _onDoubleWager: function() {
-    console.log('Doubling wager...');
     var n = betStore.state.wager.num * 2;
     Dispatcher.sendAction('UPDATE_WAGER', { str: n.toString() });
-    this._validateWager(n.toString());
 
   },
   _onMaxWager: function() {
-    console.log('Maxing wager...');
-
     // If user is logged in, use their balance as max wager
     var balanceBits;
     if (worldStore.state.user) {
@@ -1007,7 +988,6 @@ var BetBoxWager = React.createClass({
       balanceBits = 42000;
     }
     Dispatcher.sendAction('UPDATE_WAGER', { str: balanceBits.toString() });
-    this._validateWager(balanceBits.toString());
   },
   //
   render: function() {

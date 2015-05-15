@@ -1,0 +1,73 @@
+body {
+    margin-top: 20px;
+}
+
+.navbar .navbar-brand {
+    color: #777777;
+}
+.navbar .brand-name:hover {
+    text-decoration: underline;
+}
+
+/* ChatBox */
+
+.chat-list {
+    overflow-y: scroll;
+    height: 215px;
+    word-wrap: break-word;
+}
+
+.chat-list li {
+    /* Since .focus() is used to scroll to last message item,
+       turn off the outline that appears by default */
+    outline: none;
+}
+
+/* Animation */
+
+.rotate {
+    display: inline-block;
+    -webkit-animation-name: rotate;
+    -webkit-animation-duration: 2s;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-timing-function: linear;
+    -moz-animation-name: rotate;
+    -moz-animation-duration: 2s;
+    -moz-animation-iteration-count: infinite;
+    -moz-animation-timing-function: linear;
+    -o-animation-name: rotate;
+    -o-animation-duration: 2s;
+    -o-animation-iteration-count: infinite;
+    -o-animation-timing-function: linear;
+    animation-name: rotate;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+@-webkit-keyframes rotate {
+    from {-webkit-transform: rotate(0deg);}
+    to {-webkit-transform: rotate(360deg);}
+}
+
+@-moz-keyframes rotate {
+    from {-moz-transform: rotate(0deg);}
+    to {-moz-transform: rotate(360deg);}
+}
+
+@-o-keyframes rotate {
+    from {-moz-transform: rotate(0deg);}
+    to {-moz-transform: rotate(360deg);}
+}
+
+@keyframes rotate {
+    from {transform: rotate(0deg);}
+    to {transform: rotate(360deg);}
+}
+
+/* Bootstrap overrides */
+
+/* Turn off redundant text-shadow */
+.btn kbd,
+.btn .label {
+    text-shadow: none;
+}

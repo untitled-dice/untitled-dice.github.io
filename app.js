@@ -1183,7 +1183,7 @@ var BetBoxButton = React.createClass({
                 type: 'button',
                 className: 'btn btn-lg btn-primary btn-block',
                 onClick: this._makeBetHandler('<'),
-                disabled: !!this.state.waitingOnServer
+                disabled: !!this.state.waitingForServer
               },
               'Bet Lo ', worldStore.state.hotkeysEnabled ? el.kbd(null, 'L') : ''
             )

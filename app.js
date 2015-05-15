@@ -391,6 +391,7 @@ var worldStore = new Store('world', {
   Dispatcher.registerCallback('USER_LOGIN', function(user) {
     self.state.user = user;
     self.emitter.emit('change', self.state);
+    self.emitter.emit('user_login');
   });
 
   // Replace with CLEAR_USER
@@ -933,15 +934,19 @@ var BetBoxWager = React.createClass({
   _onStoreChange: function() {
     this.forceUpdate();
   },
+  _onBalanceChange: function() {
+    this._validateWager(betStore.state.wager.str);
+  },
   componentDidMount: function() {
     betStore.on('change', this._onStoreChange);
     worldStore.on('change', this._onStoreChange);
+    worldStore.on('user_login', this._onBalanceChange);
   },
   componentWillUnmount: function() {
     betStore.off('change', this._onStoreChange);
     worldStore.off('change', this._onStoreChange);
+    worldStore.off('user_login', this._onBalanceChange);
   },
-  //
   // Run this after currBet wager input is changed
   // But first update `wagerString` state and pass in the
   // new wagerString so that it can see that new value
@@ -959,6 +964,10 @@ var BetBoxWager = React.createClass({
     // Ensure wagerString is a number
     if (Number.isNaN(n) || /[^\d]/.test(newWagerString)) {
       Dispatcher.sendAction('UPDATE_WAGER', { error: 'INVALID_WAGER' });
+    // Ensure user can afford balance
+    } else if (n * 100 > worldStore.state.user.balance) {
+      // TODO: Handle in dispatcher
+      Dispatcher.sendAction('UPDATE_WAGER', { error: 'CANNOT_AFFORD_WAGER' });
     } else {
       // wagerString is valid
       Dispatcher.sendAction('UPDATE_WAGER', {

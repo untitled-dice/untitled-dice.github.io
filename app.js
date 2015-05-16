@@ -596,7 +596,7 @@ var UserBox = React.createClass({
           el.br(null),
           el.small(
             {className: 'text-muted'},
-            'Refresh page after next block is mined'
+            'Refresh balance after next block is mined'
           )
         );
       }

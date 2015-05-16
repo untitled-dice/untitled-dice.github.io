@@ -543,15 +543,16 @@ var UserBox = React.createClass({
 
   getInitialState: function() {
     return {
-      depositActive: false
+      // LOADING | DISABLED | ENABLED
+      depositButtonState: 'ENABLED'
     };
   },
   _onDepositClick: function() {
-    if (this.state.depositActive) {
+    if (this.state.depositButtonState === 'DISABLED') {
       return;
     }
 
-    this.setState({ depositActive: true });
+    this.setState({ depositButtonState: 'LOADING' });
     var node = this.refs.deposit.getDOMNode();
     var opts = {
       html: true,
@@ -564,7 +565,7 @@ var UserBox = React.createClass({
     var DepositPopover = React.createClass({
       componentWillUnmount: function() {
         console.log('Unmounting');
-        outerThis.setState({ depositActive: false });
+        outerThis.setState({ depositButtonState: 'ENABLED' });
       },
       _onClose: function() {
         $(node).popover('destroy');
@@ -609,6 +610,8 @@ var UserBox = React.createClass({
 
         $(node).popover(_.merge({}, opts, {content: data.deposit_address})).popover('show');
 
+        outerThis.setState({ depositButtonState: 'DISABLED' });
+
       },
       error: function(err) {
         alert('Error fetching deposit account: ' + JSON.stringify(error, null, '  '));
@@ -633,9 +636,9 @@ var UserBox = React.createClass({
             type: 'button',
             ref: 'deposit',
             onClick: this._onDepositClick,
-            disabled: this.state.depositActive
+            disabled: this.state.depositButtonState !== 'ENABLED'
           },
-          'Deposit'
+          this.state.depositButtonState === 'LOADING' ? 'Loading' : 'Deposit'
         ),
         // Balance
         el.span(

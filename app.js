@@ -681,7 +681,9 @@ var ChatBoxInput = React.createClass({
                 className: 'form-control',
                 type: 'text',
                 value: this.state.text,
-                placeholder: 'Click here and begin typing...',
+                placeholder: worldStore.state.user ?
+                  'Click here and begin typing...' :
+                  'Login to chat',
                 onChange: this._onChange,
                 onKeyPress: this._onKeyPress,
                 onFocus: this._onFocus,

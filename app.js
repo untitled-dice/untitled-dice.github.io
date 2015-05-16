@@ -734,9 +734,14 @@ var Navbar = React.createClass({
             null,
             el.a(
               {
-                href: config.mp_browser_uri + '/apps/' + config.app_id
+                href: config.mp_browser_uri + '/apps/' + config.app_id,
+                target: '_blank'
               },
-              'View on Moneypot'
+              'View on Moneypot ',
+              // External site glyphicon
+              el.span(
+                {className: 'glyphicon glyphicon-new-window'}
+              )
             )
           )
         ),

@@ -6,6 +6,8 @@ Untitled Dice is a bare-bones bitcoin dice casino built on top of the [Moneypot.
 
 Since Moneypot handles the user accounts, betting, faucet, and chat, Untitled Dice does not need a server of its own. It's fully client-side (just some javascript files), so it can be hosted anywhere including Github.
 
+Moneypot even handles the bankroll. Profits are split between you, Moneypot, and Moneypot's investors. See: <https://www.moneypot.com/investment>.
+
 ![Screenshot](http://i.imgur.com/dTwOR01.png)
 
 ## Run your own dice site

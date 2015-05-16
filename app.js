@@ -253,8 +253,8 @@ if (helpers.getHashParams().access_token) {
   expires_in = helpers.getHashParams().expires_in;
   expires_at = new Date(Date.now() + (expires_in * 1000));
 
-  localStorage.access_token = access_token;
-  localStorage.expires_at = expires_at;
+  localStorage.setItem('access_token', access_token);
+  localStorage.setItem('expires_at', expires_at);
 } else if (localStorage.access_token) {
   console.log('[token manager] access_token in localStorage');
   expires_at = localStorage.expires_at;

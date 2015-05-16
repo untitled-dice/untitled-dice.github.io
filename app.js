@@ -656,7 +656,10 @@ var UserBox = React.createClass({
         ),
         // Balance
         el.span(
-          {className: 'navbar-text'},
+          {
+            className: 'navbar-text',
+            style: {marginRight: '5px'}
+          },
           worldStore.state.user.balance / 100 + ' bits'
         ),
         // Refresh button
@@ -665,7 +668,8 @@ var UserBox = React.createClass({
             className: 'btn btn-link navbar-btn navbar-left ' + (worldStore.state.isRefreshingUser ? ' rotate' : ''),
             title: 'Refresh Balance',
             disabled: worldStore.state.isRefreshingUser,
-            onClick: this._onRefreshUser
+            onClick: this._onRefreshUser,
+            style: {paddingLeft: '0px'}
           },
           el.span({className: 'glyphicon glyphicon-refresh'})
         ),

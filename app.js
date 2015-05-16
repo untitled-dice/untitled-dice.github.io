@@ -669,7 +669,11 @@ var UserBox = React.createClass({
             title: 'Refresh Balance',
             disabled: worldStore.state.isRefreshingUser,
             onClick: this._onRefreshUser,
-            style: {paddingLeft: '0px'}
+            style: {
+              paddingLeft: 0,
+              paddingRight: 0,
+              marginRight: '10px'
+            }
           },
           el.span({className: 'glyphicon glyphicon-refresh'})
         ),

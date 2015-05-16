@@ -140,7 +140,7 @@ var MoneyPot = (function() {
   };
 
   o.generateBetHash = function(callbacks) {
-    var endpoint = '/bet/generate-hash';
+    var endpoint = '/hashes';
     makeMPRequest('POST', undefined, endpoint, callbacks);
   };
 

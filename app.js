@@ -311,6 +311,20 @@ var chatStore = new Store('chat', {
     self.emitter.emit('change', self.state);
   });
 
+  // user is { id: Int, uname: String, role: 'admin' | 'mod' | 'owner' | 'member' }
+  Dispatcher.registerCallback('USER_JOINED', function(user) {
+    console.log('[ChatStore] received USER_JOINED:', user);
+    self.state.userList[user.uname] = user;
+    self.emitter.emit('change', self.state);
+  });
+
+  // user is { id: Int, uname: String, role: 'admin' | 'mod' | 'owner' | 'member' }
+  Dispatcher.registerCallback('USER_LEFT', function(user) {
+    console.log('[ChatStore] received USER_LEFT:', user);
+    delete self.state.userList[user.uname];
+    self.emitter.emit('change', self.state);
+  });
+
   Dispatcher.registerCallback('NEW_SYSTEM_MESSAGE', function(text) {
     console.log('[ChatStore] received NEW_SYSTEM_MESSAGE');
     self.state.messages.push({
@@ -1712,12 +1726,14 @@ function connectToChatServer() {
       console.log('[socket] User unmuted:', data);
     });
 
-    socket.on('user_joined', function(data) {
-      console.log('[socket] User joined:', data);
+    socket.on('user_joined', function(user) {
+      console.log('[socket] User joined:', user);
+      Dispatcher.sendAction('USER_JOINED', user);
     });
 
-    socket.on('user_left', function(data) {
-      console.log('[socket] User left:', data);
+    socket.on('user_left', function(user) {
+      console.log('[socket] User left:', user);
+      Dispatcher.sendAction('USER_LEFT', user);
     });
 
     // Received when your client doesn't comply with chat-server api

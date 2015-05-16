@@ -592,7 +592,12 @@ var UserBox = React.createClass({
             }
           ),
           // Address
-          el.small(null, el.code(null, this.props.address))
+          el.small(null, el.code(null, this.props.address)),
+          el.br(null),
+          el.small(
+            {className: 'text-muted'},
+            'Refresh page after next block is mined'
+          )
         );
       }
     });

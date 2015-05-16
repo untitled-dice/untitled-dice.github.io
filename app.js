@@ -408,7 +408,7 @@ var worldStore = new Store('world', {
   Dispatcher.registerCallback('USER_LOGIN', function(user) {
     self.state.user = user;
     self.emitter.emit('change', self.state);
-    self.emitter.emit('user_login');
+    self.emitter.emit('user_update');
   });
 
   // Replace with CLEAR_USER
@@ -462,6 +462,7 @@ var worldStore = new Store('world', {
         var user = data.auth.user;
         self.state.user = user;
         self.emitter.emit('change', self.state);
+        self.emitter.emit('user_update');
       },
       error: function(err) {
         console.log('Error:', err);
@@ -959,12 +960,12 @@ var BetBoxWager = React.createClass({
   componentDidMount: function() {
     betStore.on('change', this._onStoreChange);
     worldStore.on('change', this._onStoreChange);
-    worldStore.on('user_login', this._onBalanceChange);
+    worldStore.on('user_update', this._onBalanceChange);
   },
   componentWillUnmount: function() {
     betStore.off('change', this._onStoreChange);
     worldStore.off('change', this._onStoreChange);
-    worldStore.off('user_login', this._onBalanceChange);
+    worldStore.off('user_update', this._onBalanceChange);
   },
   _onWagerChange: function(e) {
     var str = e.target.value;
@@ -1126,11 +1127,20 @@ var BetBoxButton = React.createClass({
             balance: worldStore.state.user.balance + bet.profit
           });
         },
-        error: function() {
+        error: function(xhr) {
           console.log('Error');
+          if (xhr.responseJSON && xhr.responseJSON) {
+            alert(xhr.responseJSON.error);
+          } else {
+            alert('Internal Error');
+          }
         },
         complete: function() {
           self.setState({ waitingForServer: false });
+          // Force re-validation of wager
+          Dispatcher.sendAction('UPDATE_WAGER', {
+            str: betStore.state.wager.str
+          });
         }
       });
     };

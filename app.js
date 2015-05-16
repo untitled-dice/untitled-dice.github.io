@@ -1678,7 +1678,10 @@ var App = React.createClass({
         )
       ),
       // Tabs
-      React.createElement(Tabs, null),
+      el.div(
+        {style: {marginTop: '15px'}},
+        React.createElement(Tabs, null)
+      ),
       // Tab Contents
       React.createElement(TabContent, null)
     );

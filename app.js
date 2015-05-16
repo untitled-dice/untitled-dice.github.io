@@ -144,6 +144,11 @@ var MoneyPot = (function() {
     makeMPRequest('POST', undefined, endpoint, callbacks);
   };
 
+  o.getDepositAddress = function(callbacks) {
+    var endpoint = '/deposit-address';
+    makeMPRequest('GET', undefined, endpoint, callbacks);
+  };
+
   // gRecaptchaResponse is string response from google server
   // `callbacks.success` signature	is fn({ claim_id: Int, amoutn: Satoshis })
   o.claimFaucet = function(gRecaptchaResponse, callbacks) {
@@ -535,6 +540,81 @@ var UserBox = React.createClass({
   _onRefreshUser: function() {
     Dispatcher.sendAction('START_REFRESHING_USER');
   },
+
+  getInitialState: function() {
+    return {
+      depositActive: false
+    };
+  },
+  _onDepositClick: function() {
+    if (this.state.depositActive) {
+      return;
+    }
+
+    this.setState({ depositActive: true });
+    var node = this.refs.deposit.getDOMNode();
+    var opts = {
+      html: true,
+      placement: 'bottom',
+      trigger: 'manual',
+      template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content deposit-popover-content"></div></div>'
+    };
+
+    var outerThis = this;
+    var DepositPopover = React.createClass({
+      componentWillUnmount: function() {
+        console.log('Unmounting');
+        outerThis.setState({ depositActive: false });
+      },
+      _onClose: function() {
+        $(node).popover('destroy');
+      },
+      render: function() {
+        return el.div(
+          null,
+          // Close button
+          el.button(
+            {
+              className: 'pull-right btn btn-default btn-xs',
+              onClick: this._onClose
+            },
+            'Close'
+          ),
+          // QR
+          el.img(
+            {
+              src: 'https://blockchain.info/qr?data='+this.props.address+'&size=100',
+              height: 100,
+              width: 100
+            }
+          ),
+          // Address
+          el.small(null, el.code(null, this.props.address))
+        );
+      }
+    });
+
+    MoneyPot.getDepositAddress({
+      success: function(data) {
+        $(node).on('shown.bs.popover', function() {
+          React.render(
+            React.createElement(DepositPopover, { address: data.deposit_address }),
+            $('.deposit-popover-content').get(0)
+          );
+        });
+
+        $(node).on('hide.bs.popover', function() {
+          React.unmountComponentAtNode($('.deposit-popover-content').get(0));
+        });
+
+        $(node).popover(_.merge({}, opts, {content: data.deposit_address})).popover('show');
+
+      },
+      error: function(err) {
+        alert('Error fetching deposit account: ' + JSON.stringify(error, null, '  '));
+      }
+    });
+  },
   render: function() {
 
     var innerNode;
@@ -547,10 +627,13 @@ var UserBox = React.createClass({
       innerNode = el.div(
         null,
         // Deposit
-        el.a(
+        el.button(
           {
-            href: config.mp_browser_uri + '/oauth/authorize?app_id=' + config.app_id + '&redirect_uri=' + config.redirect_uri,
-            className: 'navbar-text'
+            className: 'navbar-btn btn-link btn navbar-left',
+            type: 'button',
+            ref: 'deposit',
+            onClick: this._onDepositClick,
+            disabled: this.state.depositActive
           },
           'Deposit'
         ),

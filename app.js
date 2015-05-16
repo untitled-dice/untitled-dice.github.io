@@ -271,7 +271,8 @@ var chatStore = new Store('chat', {
   messages: new CBuffer(250),
   waitingForServer: false,
   userList: {},
-  showUserList: false
+  showUserList: false,
+  loadingInitialMessages: true
 }, function() {
   var self = this;
 
@@ -285,6 +286,9 @@ var chatStore = new Store('chat', {
     });
 
     self.state.messages.push.apply(self.state.messages, messages);
+
+    // Indicate that we're done with initial fetch
+    self.state.loadingInitialMessages = false;
 
     // Load userList
     self.state.userList = data.room.users;
@@ -620,12 +624,7 @@ var ChatBoxInput = React.createClass({
   _onSend: function() {
     var self = this;
     Dispatcher.sendAction('SEND_MESSAGE', this.state.text);
-    this.setState({ text: '' }, function() {
-      // FIXME: why do i need this setTimeout?
-      setTimeout(function() {
-        self.refs.messageInputRef.getDOMNode().focus();
-      }, 10);
-    });
+    this.setState({ text: '' });
   },
   _onFocus: function() {
     // When users click the chat input, turn off bet hotkeys so they
@@ -648,20 +647,33 @@ var ChatBoxInput = React.createClass({
         {className: 'row'},
         el.div(
           {className: 'col-md-9'},
-          el.input(
-            {
-              className: 'form-control',
-              type: 'text',
-              value: this.state.text,
-              placeholder: 'Click here and begin typing...',
-              onChange: this._onChange,
-              onKeyPress: this._onKeyPress,
-              onFocus: this._onFocus,
-              ref: 'messageInputRef',
-              // TODO: disable while fetching messages
-              disabled: !worldStore.state.user // || props.chat.get('fetchingMessages')
-            }
-          )
+          chatStore.state.loadingInitialMessages ?
+            el.div(
+              {
+                style: {marginTop: '7px'},
+                className: 'text-muted'
+              },
+              el.span(
+                {className: 'glyphicon glyphicon-refresh rotate'}
+              ),
+              ' Loading...'
+            )
+          :
+            el.input(
+              {
+                id: 'chat-input',
+                className: 'form-control',
+                type: 'text',
+                value: this.state.text,
+                placeholder: 'Click here and begin typing...',
+                onChange: this._onChange,
+                onKeyPress: this._onKeyPress,
+                onFocus: this._onFocus,
+                ref: 'input',
+                // TODO: disable while fetching messages
+                disabled: !worldStore.state.user || chatStore.state.loadingInitialMessages
+              }
+            )
         ),
         el.div(
           {className: 'col-md-3'},
@@ -716,7 +728,8 @@ var ChatBox = React.createClass({
     this.forceUpdate();
   },
   _onNewMessage: function() {
-    $(this.refs.chatListRef.getDOMNode()).find('li').last().focus();
+    var node = this.refs.chatListRef.getDOMNode();
+    $(node).scrollTop(node.scrollHeight);
   },
   componentDidMount: function() {
     chatStore.on('change', this._onStoreChange);
@@ -743,9 +756,7 @@ var ChatBox = React.createClass({
               return el.li(
                 {
                   // Use message id as unique key
-                  key: m.id,
-                  // Allows us to $(list li).last().focus()
-                  tabIndex: '1'
+                  key: m.id
                 },
                 helpers.roleToLabelElement(m.user.role),
                 el.code(null, m.user.uname + ':'),

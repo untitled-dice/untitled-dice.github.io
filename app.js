@@ -510,6 +510,7 @@ var worldStore = new Store('world', {
 ////////////////////////////////////////////////////////////
 
 var UserBox = React.createClass({
+  displayName: 'UserBox',
   _onStoreChange: function() {
     this.forceUpdate();
   },
@@ -598,6 +599,7 @@ var UserBox = React.createClass({
 });
 
 var Navbar = React.createClass({
+  displayName: 'Navbar',
   render: function() {
     return el.div(
       {className: 'navbar'},
@@ -614,6 +616,7 @@ var Navbar = React.createClass({
 });
 
 var ChatBoxInput = React.createClass({
+  displayName: 'ChatBoxInput',
   _onStoreChange: function() {
     this.forceUpdate();
   },
@@ -708,6 +711,7 @@ var ChatBoxInput = React.createClass({
 });
 
 var ChatUserList = React.createClass({
+  displayName: 'ChatUserList',
   render: function() {
     return (
       el.div(
@@ -737,6 +741,7 @@ var ChatUserList = React.createClass({
 });
 
 var ChatBox = React.createClass({
+  displayName: 'ChatBox',
   _onStoreChange: function() {
     this.forceUpdate();
   },
@@ -811,6 +816,7 @@ var ChatBox = React.createClass({
 });
 
 var BetBoxChance = React.createClass({
+  displayName: 'BetBoxChance',
   // Hookup to stores
   _onStoreChange: function() {
     this.forceUpdate();
@@ -856,6 +862,7 @@ var BetBoxChance = React.createClass({
 });
 
 var BetBoxProfit = React.createClass({
+  displayName: 'BetBoxProfit',
   // Hookup to stores
   _onStoreChange: function() {
     this.forceUpdate();
@@ -900,6 +907,7 @@ var BetBoxProfit = React.createClass({
 });
 
 var BetBoxMultiplier = React.createClass({
+  displayName: 'BetBoxMultiplier',
   // Hookup to stores
   _onStoreChange: function() {
     this.forceUpdate();
@@ -989,6 +997,7 @@ var BetBoxMultiplier = React.createClass({
 });
 
 var BetBoxWager = React.createClass({
+  displayName: 'BetBoxWager',
   // Hookup to stores
   _onStoreChange: function() {
     this.forceUpdate();
@@ -1099,6 +1108,7 @@ var BetBoxWager = React.createClass({
 });
 
 var BetBoxButton = React.createClass({
+  displayName: 'BetBoxButton',
   _onStoreChange: function() {
     this.forceUpdate();
   },
@@ -1284,6 +1294,7 @@ var BetBoxButton = React.createClass({
 });
 
 var HotkeyToggle = React.createClass({
+  displayName: 'HotkeyToggle',
   _onClick: function() {
     Dispatcher.sendAction('TOGGLE_HOTKEYS');
   },
@@ -1309,6 +1320,7 @@ var HotkeyToggle = React.createClass({
 });
 
 var BetBox = React.createClass({
+  displayName: 'BetBox',
   _onStoreChange: function() {
     this.forceUpdate();
   },
@@ -1368,6 +1380,7 @@ var BetBox = React.createClass({
 });
 
 var Tabs = React.createClass({
+  displayName: 'Tabs',
   _onStoreChange: function() {
     this.forceUpdate();
   },
@@ -1412,6 +1425,7 @@ var Tabs = React.createClass({
 });
 
 var MyBetsTabContent = React.createClass({
+  displayName: 'MyBetsTabContent',
   _onStoreChange: function() {
     this.forceUpdate();
   },
@@ -1495,6 +1509,7 @@ var MyBetsTabContent = React.createClass({
 });
 
 var FaucetTabContent = React.createClass({
+  displayName: 'FaucetTabContent',
   getInitialState: function() {
     return {
       // SHOW_RECAPTCHA | SUCCESSFULLY_CLAIM | ALREADY_CLAIMED | WAITING_FOR_SERVER
@@ -1609,6 +1624,7 @@ var FaucetTabContent = React.createClass({
 });
 
 var TabContent = React.createClass({
+  displayName: 'TabContent',
   _onStoreChange: function() {
     this.forceUpdate();
   },
@@ -1632,6 +1648,7 @@ var TabContent = React.createClass({
 });
 
 var App = React.createClass({
+  displayName: 'App',
   render: function() {
     return el.div(
       {className: 'container'},

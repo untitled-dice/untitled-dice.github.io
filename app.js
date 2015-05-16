@@ -14,12 +14,17 @@ var config = {
   mp_api_uri: 'https://api.moneypot.com',
   chat_uri: 'https://a-chat-server.herokuapp.com',
   // - Show debug output only if running on localhost
-  debug: isRunningLocally()
+  debug: isRunningLocally(),
+  force_https_redirect: true
 };
 
 ////////////////////////////////////////////////////////////
 // You shouldn't have to edit anything below this line
 ////////////////////////////////////////////////////////////
+
+if (config.force_https_redirect && window.location.protocol !== "https:") {
+  window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
+}
 
 // Hoist it. It's impl'd at bottom of page.
 var socket;

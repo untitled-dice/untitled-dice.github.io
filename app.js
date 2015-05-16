@@ -15,7 +15,9 @@ var config = {
   chat_uri: 'https://a-chat-server.herokuapp.com',
   // - Show debug output only if running on localhost
   debug: isRunningLocally(),
-  force_https_redirect: true
+  // - Set this to true if you want users that come to http:// to be redirected
+  //   to https://
+  force_https_redirect: isRunningLocally()
 };
 
 ////////////////////////////////////////////////////////////

@@ -293,6 +293,7 @@ var chatStore = new Store('chat', {
     // Load userList
     self.state.userList = data.room.users;
     self.emitter.emit('change', self.state);
+    self.emitter.emit('init');
   });
 
   Dispatcher.registerCallback('NEW_MESSAGE', function(message) {
@@ -495,16 +496,14 @@ var worldStore = new Store('world', {
 ////////////////////////////////////////////////////////////
 
 var UserBox = React.createClass({
-  getInitialState: function() {
-    return {
-      $world: worldStore.state
-    };
+  _onStoreChange: function() {
+    this.forceUpdate();
   },
   componentDidMount: function() {
-    var self = this;
-    worldStore.on('change', function(newState) {
-      self.setState({ $world: newState });
-    });
+    worldStore.on('change', this._onStoreChange);
+  },
+  componentWillUnount: function() {
+    worldStore.off('change', this._onStoreChange);
   },
   _onLogout: function() {
     Dispatcher.sendAction('USER_LOGOUT');
@@ -515,12 +514,12 @@ var UserBox = React.createClass({
   render: function() {
 
     var innerNode;
-    if (this.state.$world.isLoading) {
+    if (worldStore.state.isLoading) {
       innerNode = el.p(
         {className: 'navbar-text'},
         'Loading...'
       );
-    } else if (this.state.$world.user) {
+    } else if (worldStore.state.user) {
       innerNode = el.div(
         null,
         // Deposit
@@ -534,14 +533,14 @@ var UserBox = React.createClass({
         // Balance
         el.span(
           {className: 'navbar-text'},
-          this.state.$world.user.balance / 100 + ' bits'
+          worldStore.state.user.balance / 100 + ' bits'
         ),
         // Refresh button
         el.button(
           {
-            className: 'btn btn-link navbar-btn navbar-left ' + (this.state.$world.isRefreshingUser ? ' rotate' : ''),
+            className: 'btn btn-link navbar-btn navbar-left ' + (worldStore.state.isRefreshingUser ? ' rotate' : ''),
             title: 'Refresh Balance',
-            disabled: this.state.$world.isRefreshingUser,
+            disabled: worldStore.state.isRefreshingUser,
             onClick: this._onRefreshUser
           },
           el.span({className: 'glyphicon glyphicon-refresh'})
@@ -549,7 +548,7 @@ var UserBox = React.createClass({
         // Logged in as...
         el.span(
           {className: 'navbar-text'},
-          'Logged in as ' + this.state.$world.user.uname
+          'Logged in as ' + worldStore.state.user.uname
         ),
         // Logout button
         el.button(
@@ -728,16 +727,21 @@ var ChatBox = React.createClass({
     this.forceUpdate();
   },
   _onNewMessage: function() {
+    this._scrollChat();
+  },
+  _scrollChat: function() {
     var node = this.refs.chatListRef.getDOMNode();
     $(node).scrollTop(node.scrollHeight);
   },
   componentDidMount: function() {
     chatStore.on('change', this._onStoreChange);
     chatStore.on('new_message', this._onNewMessage);
+    chatStore.on('init', this._scrollChat);
   },
   componentWillUnmount: function() {
     chatStore.off('change', this._onStoreChange);
     chatStore.off('new_message', this._onNewMessage);
+    chatStore.off('init', this._scrollChat);
   },
   //
   _onUserListToggle: function() {

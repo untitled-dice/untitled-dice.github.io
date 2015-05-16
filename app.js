@@ -1652,8 +1652,8 @@ if (!worldStore.state.accessToken) {
   });
   // Get next bet hash
   MoneyPot.generateBetHash({
-    success: function(hashString) {
-      Dispatcher.sendAction('SET_NEXT_HASH', hashString);
+    success: function(data) {
+      Dispatcher.sendAction('SET_NEXT_HASH', data.hash);
     }
   });
 }

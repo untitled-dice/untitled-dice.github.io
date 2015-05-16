@@ -1073,24 +1073,18 @@ var BetBoxMultiplier = React.createClass({
 
     // Ensure str is a number
     if (Number.isNaN(num) || !isFloatRegexp.test(newStr)) {
-      //this.props.currBet.setIn(['multiplier', 'error'], 'INVALID_MULTIPLIER');
       Dispatcher.sendAction('UPDATE_MULTIPLIER', { error: 'INVALID_MULTIPLIER' });
       // Ensure multiplier is >= 1.00x
     } else if (num < 1.01) {
-      //this.props.currBet.setIn(['multiplier', 'error'], 'MULTIPLIER_TOO_LOW');
       Dispatcher.sendAction('UPDATE_MULTIPLIER', { error: 'MULTIPLIER_TOO_LOW' });
       // Ensure multiplier is <= max allowed multiplier (100x for now)
-    } else if (num >= 100) {
-      //this.props.currBet.setIn(['multiplier', 'error'], 'MULTIPLIER_TOO_HIGH');
+    } else if (num > 9900) {
       Dispatcher.sendAction('UPDATE_MULTIPLIER', { error: 'MULTIPLIER_TOO_HIGH' });
       // Ensure no more than 2 decimal places of precision
     } else if (helpers.getPrecision(num) > 2) {
-      //this.props.currBet.setIn(['multiplier', 'error'], 'MULTIPLIER_TOO_PRECISE');
       Dispatcher.sendAction('UPDATE_MULTIPLIER', { error: 'MULTIPLIER_TOO_PRECISE' });
       // multiplier str is valid
     } else {
-      // this.props.currBet.setIn(['multiplier', 'error'], undefined);
-      // this.props.currBet.setIn(['multiplier', 'num'], num);
       Dispatcher.sendAction('UPDATE_MULTIPLIER', {
         num: num,
         error: null

@@ -265,6 +265,15 @@ if (helpers.getHashParams().access_token) {
   console.log('[token manager] no access token');
 }
 
+// Scrub fragment params from url.
+if (window.history && window.history.replaceState) {
+  window.history.replaceState({}, document.title, "/");
+} else {
+  // For browsers that don't support html5 history api, just do it the old
+  // fashioned way that leaves a trailing '#' in the url
+  window.location.hash = '#';
+}
+
 ////////////////////////////////////////////////////////////
 
 var chatStore = new Store('chat', {

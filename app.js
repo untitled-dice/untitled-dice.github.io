@@ -530,9 +530,11 @@ var UserBox = React.createClass({
   },
   componentDidMount: function() {
     worldStore.on('change', this._onStoreChange);
+    betStore.on('change', this._onStoreChange);
   },
   componentWillUnount: function() {
     worldStore.off('change', this._onStoreChange);
+    betStore.off('change', this._onStoreChange);
   },
   _onLogout: function() {
     Dispatcher.sendAction('USER_LOGOUT');
@@ -632,7 +634,7 @@ var UserBox = React.createClass({
         // Deposit
         el.button(
           {
-            className: 'navbar-btn btn-link btn navbar-left',
+            className: 'navbar-btn btn navbar-left ' + (betStore.state.wager.error === 'CANNOT_AFFORD_WAGER' ? 'btn-success' : 'btn-link'),
             type: 'button',
             ref: 'deposit',
             onClick: this._onDepositClick,
@@ -1374,17 +1376,7 @@ var BetBoxButton = React.createClass({
       ),
       el.div(
         {className: 'col-md-8'},
-        innerNode,
-        // If CANNOT_AFFORD_WAGER,link to the app
-        // TODO: Let users deposit from untitled-dice
-        (betStore.state.wager.error === 'CANNOT_AFFORD_WAGER') ?
-          el.a(
-            {
-              href: config.mp_browser_uri + '/oauth/authorize?app_id=' + config.app_id + '&redirect_uri=' + config.redirect_uri
-            },
-            'Deposit more bits into ' + config.app_name
-          ) :
-        ''
+        innerNode
       )
     );
   }

@@ -522,7 +522,7 @@ var UserBox = React.createClass({
         // Deposit
         el.a(
           {
-            href: config.mp_browser_uri + '/apps/' + config.app_id,
+            href: config.mp_browser_uri + '/oauth/authorize?app_id=' + config.app_id + '&redirect_uri=' + config.redirect_uri,
             className: 'navbar-text'
           },
           'Deposit'
@@ -1239,7 +1239,9 @@ var BetBoxButton = React.createClass({
         // TODO: Let users deposit from untitled-dice
         (betStore.state.wager.error === 'CANNOT_AFFORD_WAGER') ?
           el.a(
-            {href: config.mp_browser_uri + '/apps/' + config.app_id},
+            {
+              href: config.mp_browser_uri + '/oauth/authorize?app_id=' + config.app_id + '&redirect_uri=' + config.redirect_uri
+            },
             'Deposit more bits into ' + config.app_name
           ) :
         ''

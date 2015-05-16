@@ -628,7 +628,11 @@ var ChatBoxInput = React.createClass({
     });
   },
   _onFocus: function() {
-    Dispatcher.sendAction('DISABLE_HOTKEYS');
+    // When users click the chat input, turn off bet hotkeys so they
+    // don't accidentally bet
+    if (worldStore.state.hotkeysEnabled) {
+      Dispatcher.sendAction('DISABLE_HOTKEYS');
+    }
   },
   _onKeyPress: function(e) {
     var ENTER = 13;

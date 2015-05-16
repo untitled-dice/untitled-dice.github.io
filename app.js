@@ -519,6 +519,14 @@ var UserBox = React.createClass({
     } else if (this.state.$world.user) {
       innerNode = el.div(
         null,
+        // Deposit
+        el.a(
+          {
+            href: config.mp_browser_uri + '/apps/' + config.app_id,
+            className: 'navbar-text'
+          },
+          'Deposit'
+        ),
         // Balance
         el.span(
           {className: 'navbar-text'},

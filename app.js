@@ -712,6 +712,20 @@ var Navbar = React.createClass({
           {className: 'navbar-header'},
           el.a({className: 'navbar-brand', href:'/'}, 'Untitled Dice')
         ),
+        // Links
+        el.ul(
+          {className: 'nav navbar-nav'},
+          el.li(
+            null,
+            el.a(
+              {
+                href: config.mp_browser_uri + '/apps/' + config.app_id
+              },
+              'View on Moneypot'
+            )
+          )
+        ),
+        // Userbox
         React.createElement(UserBox, null)
       )
     );

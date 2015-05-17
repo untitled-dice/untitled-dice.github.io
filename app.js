@@ -936,6 +936,7 @@ var ChatBox = React.createClass({
                   key: m.id
                 },
                 helpers.roleToLabelElement(m.user.role),
+                ' ',
                 el.code(null, m.user.uname + ':'),
                 el.span(null, ' ' + m.text)
               );

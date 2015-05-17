@@ -393,13 +393,13 @@ var betStore = new Store('bet', {
     var n = parseInt(self.state.wager.str, 10);
 
     // If n is a number, ensure it's at least 1 bit
-    if (Number.isFinite(n)) {
+    if (isFinite(n)) {
       n = Math.max(n, 1);
       self.state.wager.str = n.toString();
     }
 
     // Ensure wagerString is a number
-    if (Number.isNaN(n) || /[^\d]/.test(n.toString())) {
+    if (isNaN(n) || /[^\d]/.test(n.toString())) {
       self.state.wager.error = 'INVALID_WAGER';
     // Ensure user can afford balance
     } else if (n * 100 > worldStore.state.user.balance) {
@@ -1072,7 +1072,7 @@ var BetBoxMultiplier = React.createClass({
     var isFloatRegexp = /^(\d*\.)?\d+$/;
 
     // Ensure str is a number
-    if (Number.isNaN(num) || !isFloatRegexp.test(newStr)) {
+    if (isNaN(num) || !isFloatRegexp.test(newStr)) {
       Dispatcher.sendAction('UPDATE_MULTIPLIER', { error: 'INVALID_MULTIPLIER' });
       // Ensure multiplier is >= 1.00x
     } else if (num < 1.01) {

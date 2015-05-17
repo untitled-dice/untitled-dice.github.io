@@ -1785,6 +1785,26 @@ var TabContent = React.createClass({
   }
 });
 
+var Footer = React.createClass({
+  render: function() {
+    return el.div(
+      {
+        className: 'text-center text-muted',
+        style: {
+          marginTop: '200px'
+        }
+      },
+      'Powered by ',
+      el.a(
+        {
+          href: 'https://www.moneypot.com'
+        },
+        'Moneypot'
+      )
+    );
+  }
+});
+
 var App = React.createClass({
   displayName: 'App',
   render: function() {
@@ -1810,7 +1830,9 @@ var App = React.createClass({
         React.createElement(Tabs, null)
       ),
       // Tab Contents
-      React.createElement(TabContent, null)
+      React.createElement(TabContent, null),
+      // Footer
+      React.createElement(Footer, null)
     );
   }
 });

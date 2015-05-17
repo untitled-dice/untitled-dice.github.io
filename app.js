@@ -1,3 +1,4 @@
+// Untitled Dice v0.0.3
 
 // Customize these configuration settings:
 
@@ -884,8 +885,22 @@ var ChatBox = React.createClass({
   _onStoreChange: function() {
     this.forceUpdate();
   },
+  // New messages should only force scroll if user is scrolled near the bottom
+  // already. This allows users to scroll back to earlier convo without being
+  // forced to scroll to bottom when new messages arrive
   _onNewMessage: function() {
-    this._scrollChat();
+    var node = this.refs.chatListRef.getDOMNode();
+
+    // Only scroll if user is within 100 pixels of last message
+    var shouldScroll = function() {
+      var distanceFromBottom = node.scrollHeight - ($(node).scrollTop() + $(node).innerHeight());
+      console.log('DistanceFromBottom:', distanceFromBottom);
+      return distanceFromBottom <= 100;
+    };
+
+    if (shouldScroll()) {
+      this._scrollChat();
+    }
   },
   _scrollChat: function() {
     var node = this.refs.chatListRef.getDOMNode();

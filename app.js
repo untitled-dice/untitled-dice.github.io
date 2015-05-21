@@ -39,6 +39,7 @@ function isRunningLocally() {
 
 var el = React.DOM;
 
+// Generates UUID for uniquely tagging components
 var genUuid = function() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
@@ -63,7 +64,7 @@ helpers.calcNumber = function(cond, winProb) {
   if (cond === '<') {
     return winProb * 100;
   } else {
-    return 100 - (winProb * 100);
+    return 99.99 - (winProb * 100);
   }
 };
 
@@ -1787,6 +1788,7 @@ var TabContent = React.createClass({
 });
 
 var Footer = React.createClass({
+  displayName: 'Footer',
   render: function() {
     return el.div(
       {

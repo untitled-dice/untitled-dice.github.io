@@ -551,88 +551,31 @@ var UserBox = React.createClass({
   _onRefreshUser: function() {
     Dispatcher.sendAction('START_REFRESHING_USER');
   },
-
-  getInitialState: function() {
-    return {
-      // LOADING | DISABLED | ENABLED
-      depositButtonState: 'ENABLED'
-    };
+  _openWithdrawPopup: function() {
+    var windowUrl = config.mp_browser_uri + '/dialog/withdraw?app_id=' + config.app_id;
+    var windowName = 'manage-auth';
+    var windowOpts = [
+      'width=420',
+      'height=350',
+      'left=100',
+      'top=100'
+    ].join(',');
+    var windowRef = window.open(windowUrl, windowName, windowOpts);
+    windowRef.focus();
+    return false;
   },
-  _onDepositClick: function() {
-    if (this.state.depositButtonState === 'DISABLED') {
-      return;
-    }
-
-    this.setState({ depositButtonState: 'LOADING' });
-    var node = this.refs.deposit.getDOMNode();
-    var opts = {
-      html: true,
-      placement: 'bottom',
-      trigger: 'manual',
-      template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content deposit-popover-content"></div></div>'
-    };
-
-    var outerThis = this;
-    var DepositPopover = React.createClass({
-      componentWillUnmount: function() {
-        console.log('Unmounting');
-        outerThis.setState({ depositButtonState: 'ENABLED' });
-      },
-      _onClose: function() {
-        $(node).popover('destroy');
-      },
-      render: function() {
-        return el.div(
-          null,
-          // Close button
-          el.button(
-            {
-              className: 'pull-right btn btn-default btn-xs',
-              onClick: this._onClose
-            },
-            'Close'
-          ),
-          // QR
-          el.img(
-            {
-              src: 'https://blockchain.info/qr?data='+this.props.address+'&size=100',
-              height: 100,
-              width: 100
-            }
-          ),
-          // Address
-          el.small(null, el.code(null, this.props.address)),
-          el.br(null),
-          el.small(
-            {className: 'text-muted'},
-            'Refresh balance after next block is mined'
-          )
-        );
-      }
-    });
-
-    MoneyPot.getDepositAddress({
-      success: function(data) {
-        $(node).on('shown.bs.popover', function() {
-          React.render(
-            React.createElement(DepositPopover, { address: data.deposit_address }),
-            $('.deposit-popover-content').get(0)
-          );
-        });
-
-        $(node).on('hide.bs.popover', function() {
-          React.unmountComponentAtNode($('.deposit-popover-content').get(0));
-        });
-
-        $(node).popover(_.merge({}, opts, {content: data.deposit_address})).popover('show');
-
-        outerThis.setState({ depositButtonState: 'DISABLED' });
-
-      },
-      error: function(err) {
-        alert('Error fetching deposit account: ' + JSON.stringify(error, null, '  '));
-      }
-    });
+  _openDepositPopup: function() {
+    var windowUrl = config.mp_browser_uri + '/dialog/deposit?app_id=' + config.app_id;
+    var windowName = 'manage-auth';
+    var windowOpts = [
+      'width=420',
+      'height=350',
+      'left=100',
+      'top=100'
+    ].join(',');
+    var windowRef = window.open(windowUrl, windowName, windowOpts);
+    windowRef.focus();
+    return false;
   },
   render: function() {
 
@@ -645,16 +588,25 @@ var UserBox = React.createClass({
     } else if (worldStore.state.user) {
       innerNode = el.div(
         null,
-        // Deposit
-        el.button(
-          {
-            className: 'navbar-btn btn navbar-left ' + (betStore.state.wager.error === 'CANNOT_AFFORD_WAGER' ? 'btn-success' : 'btn-link'),
-            type: 'button',
-            ref: 'deposit',
-            onClick: this._onDepositClick,
-            disabled: this.state.depositButtonState !== 'ENABLED'
-          },
-          this.state.depositButtonState === 'LOADING' ? 'Loading' : 'Deposit'
+        // Deposit/Withdraw popup buttons
+        el.div(
+          {className: 'btn-group navbar-left btn-group-xs'},
+          el.button(
+            {
+              type: 'button',
+              className: 'btn navbar-btn btn-xs ' + (betStore.state.wager.error === 'CANNOT_AFFORD_WAGER' ? 'btn-success' : 'btn-default'),
+              onClick: this._openDepositPopup
+            },
+            'Deposit'
+          ),
+          el.button(
+            {
+              type: 'button',
+              className: 'btn btn-default navbar-btn btn-xs',
+              onClick: this._openWithdrawPopup
+            },
+            'Withdraw'
+          )
         ),
         // Balance
         el.span(
@@ -1995,3 +1947,9 @@ $(document).on('keydown', function(e) {
       return;
   }
 });
+
+window.addEventListener('message', function(event) {
+  if (event.origin === config.mp_browser_uri && event.data === 'UPDATE_BALANCE') {
+    Dispatcher.sendAction('START_REFRESHING_USER');
+  }
+}, false);

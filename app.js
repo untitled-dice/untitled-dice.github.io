@@ -1,4 +1,4 @@
-// Untitled Dice v0.0.5
+// Untitled Dice v0.0.6
 
 // Customize these configuration settings:
 

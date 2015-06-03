@@ -1312,11 +1312,21 @@ var BetBoxButton = React.createClass({
       );
     } else if (error) {
       // If there's a betbox error, then render button in error state
+
+      var errorTranslations = {
+        'CANNOT_AFFORD_WAGER': 'You cannot afford wager',
+        'INVALID_WAGER': 'Invalid wager',
+        'INVALID_MULTIPLIER': 'Invalid multiplier',
+        'MULTIPLIER_TOO_PRECISE': 'Multiplier too precise',
+        'MULTIPLIER_TOO_HIGH': 'Multiplier too high',
+        'MULTIPLIER_TOO_LOW': 'Multiplier too low'
+      };
+
       innerNode = el.button(
         {type: 'button',
          disabled: true,
          className: 'btn btn-lg btn-block btn-danger'},
-        error
+        errorTranslations[error] || 'Invalid bet'
       );
     } else if (worldStore.state.user) {
       // If user is logged in, let them submit bet

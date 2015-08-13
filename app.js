@@ -1,4 +1,4 @@
-// Untitled Dice v0.0.6
+// Untitled Dice v0.0.7
 
 // Customize these configuration settings:
 
@@ -13,7 +13,7 @@ var config = {
   redirect_uri: 'https://untitled-dice.github.io',
   mp_browser_uri: 'https://www.moneypot.com',
   mp_api_uri: 'https://api.moneypot.com',
-  chat_uri: 'https://a-chat-server.herokuapp.com',
+  chat_uri: '//socket.moneypot.com',
   // - Show debug output only if running on localhost
   debug: isRunningLocally(),
   // - Set this to true if you want users that come to http:// to be redirected
@@ -49,6 +49,16 @@ var genUuid = function() {
 
 var helpers = {};
 
+// For displaying HH:MM timestamp in chat
+//
+// String (Date JSON) -> String
+helpers.formatMessageDate = function(dateJson) {
+  var date = new Date(dateJson);
+  return _.padLeft(date.getHours().toString(), 2, '0') +
+    ':' +
+    _.padLeft(date.getMinutes().toString(), 2, '0');
+};
+
 // Number -> Number in range (0, 1)
 helpers.multiplierToWinProb = function(multiplier) {
   console.assert(typeof multiplier === 'number');
@@ -70,11 +80,11 @@ helpers.calcNumber = function(cond, winProb) {
 
 helpers.roleToLabelElement = function(role) {
   switch(role) {
-    case 'admin':
+    case 'ADMIN':
       return el.span({className: 'label label-danger'}, 'MP Staff');
-    case 'mod':
+    case 'MOD':
       return el.span({className: 'label label-info'}, 'Mod');
-    case 'owner':
+    case 'OWNER':
       return el.span({className: 'label label-primary'}, 'Owner');
     default:
       return '';
@@ -133,6 +143,8 @@ var MoneyPot = (function() {
       dataType: 'json', // data type of response
       method:   method,
       data:     bodyParams ? JSON.stringify(bodyParams) : undefined,
+      // By using text/plain, even though this is a JSON request,
+      // we avoid preflight request. (Moneypot explicitly supports this)
       headers: {
         'Content-Type': 'text/plain'
       },
@@ -303,7 +315,7 @@ var chatStore = new Store('chat', {
   Dispatcher.registerCallback('INIT_CHAT', function(data) {
     console.log('[ChatStore] received INIT_CHAT');
     // Give each one unique id
-    var messages = data.room.history.map(function(message) {
+    var messages = data.chat.messages.map(function(message) {
       message.id = genUuid();
       return message;
     });
@@ -314,7 +326,7 @@ var chatStore = new Store('chat', {
     self.state.loadingInitialMessages = false;
 
     // Load userList
-    self.state.userList = data.room.users;
+    self.state.userList = data.chat.userlist;
     self.emitter.emit('change', self.state);
     self.emitter.emit('init');
   });
@@ -364,7 +376,11 @@ var chatStore = new Store('chat', {
     console.log('[ChatStore] received SEND_MESSAGE');
     self.state.waitingForServer = true;
     self.emitter.emit('change', self.state);
-    socket.emit('new_message', text);
+    socket.emit('new_message', { text: text }, function(err) {
+      if (err) {
+        alert('Chat Error: ' + err);
+      }
+    });
   });
 });
 
@@ -614,7 +630,13 @@ var UserBox = React.createClass({
             className: 'navbar-text',
             style: {marginRight: '5px'}
           },
-          worldStore.state.user.balance / 100 + ' bits'
+          (worldStore.state.user.balance / 100) + ' bits',
+          !worldStore.state.user.unconfirmed_balance ?
+           '' :
+           el.span(
+             {style: { color: '#e67e22'}},
+             ' + ' + (worldStore.state.user.unconfirmed_balance / 100) + ' bits pending'
+           )
         ),
         // Refresh button
         el.button(
@@ -888,9 +910,18 @@ var ChatBox = React.createClass({
                   // Use message id as unique key
                   key: m.id
                 },
-                helpers.roleToLabelElement(m.user.role),
-                ' ',
-                el.code(null, m.user.uname + ':'),
+                el.span(
+                  {
+                    style: {
+                      fontFamily: 'monospace'
+                    }
+                  },
+                  helpers.formatMessageDate(m.created_at),
+                  ' '
+                ),
+                m.user ? helpers.roleToLabelElement(m.user.role) : '',
+                m.user ? ' ' : '',
+                el.code(null, m.user ? m.user.uname : 'SYSTEM' + ':'),
                 el.span(null, ' ' + m.text)
               );
             })
@@ -1852,9 +1883,20 @@ function connectToChatServer() {
       console.log('[socket] Disconnected');
     });
 
-    socket.on('system_message', function(text) {
-      console.log('[socket] Received system message:', text);
-      Dispatcher.sendAction('NEW_SYSTEM_MESSAGE', text);
+    // When subscribed to DEPOSITS:
+
+    socket.on('unconfirmed_balance_change', function(payload) {
+      console.log('[socket] unconfirmed_balance_change:', payload);
+      Dispatcher.sendAction('UPDATE_USER', {
+        unconfirmed_balance: payload.balance
+      });
+    });
+
+    socket.on('balance_change', function(payload) {
+      console.log('[socket] (confirmed) balance_change:', payload);
+      Dispatcher.sendAction('UPDATE_USER', {
+        balance: payload.balance
+      });
     });
 
     // message is { text: String, user: { role: String, uname: String} }
@@ -1863,19 +1905,12 @@ function connectToChatServer() {
       Dispatcher.sendAction('NEW_MESSAGE', message);
     });
 
-    socket.on('user_muted', function(data) {
-      console.log('[socket] User muted:', data);
-    });
-
-    socket.on('user_unmuted', function(data) {
-      console.log('[socket] User unmuted:', data);
-    });
-
     socket.on('user_joined', function(user) {
       console.log('[socket] User joined:', user);
       Dispatcher.sendAction('USER_JOINED', user);
     });
 
+    // `user` is object { uname: String }
     socket.on('user_left', function(user) {
       console.log('[socket] User left:', user);
       Dispatcher.sendAction('USER_LEFT', user);
@@ -1889,12 +1924,12 @@ function connectToChatServer() {
     // Once we connect to chat server, we send an auth message to join
     // this app's lobby channel.
 
-    // A hash of the current user's accessToken is only sent if you have one
-    var hashedToken;
-    if (worldStore.state.accessToken) {
-      hashedToken =  CryptoJS.SHA256(worldStore.state.accessToken).toString();
-    }
-    var authPayload = { app_id: config.app_id, hashed_token: hashedToken};
+    var authPayload = {
+      app_id: config.app_id,
+      access_token: worldStore.state.accessToken,
+      subscriptions: ['CHAT', 'DEPOSITS']
+    };
+
     socket.emit('auth', authPayload, function(err, data) {
       if (err) {
         console.log('[socket] Auth failure:', err);

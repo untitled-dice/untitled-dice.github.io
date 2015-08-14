@@ -2060,17 +2060,12 @@ var AllBetsTabContent = React.createClass({
             )
           )
         ),
-          React.createElement(
-            React.addons.CSSTransitionGroup,
-            {
-              transitionName: 'bet-row',
-              component: 'tbody',
-              transitionLeave: false
-            },
-            worldStore.state.allBets.toArray().map(function(bet) {
-              return React.createElement(BetRow, { bet: bet, key: bet.bet_id });
-            }).reverse()
-          )
+        el.tbody(
+          null,
+          worldStore.state.allBets.toArray().map(function(bet) {
+            return React.createElement(BetRow, { bet: bet, key: bet.bet_id });
+          }).reverse()
+        )
       )
     );
   }

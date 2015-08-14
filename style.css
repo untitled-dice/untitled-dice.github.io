@@ -78,15 +78,3 @@ body {
     background-color: #767676;
     background-image: none;
 }
-
-/* Transitions */
-
-.bet-row-enter {
-    opacity: 0.01;
-}
-
-.bet-row-enter.bet-row-enter-active {
-    opacity: 1.0;
-    /* transition: opacity .5s ease-in; */
-    transition: opacity 150ms ease-in;
-}

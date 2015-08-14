@@ -921,8 +921,19 @@ var ChatBox = React.createClass({
                 ),
                 m.user ? helpers.roleToLabelElement(m.user.role) : '',
                 m.user ? ' ' : '',
-                el.code(null, m.user ? m.user.uname : 'SYSTEM' + ':'),
-                el.span(null, ' ' + m.text)
+                el.code(
+                  null,
+                  m.user ?
+                    // If chat message:
+                    m.user.uname :
+                    // If system message:
+                    'SYSTEM :: ' + m.text
+                ),
+                m.user ?
+                  // If chat message
+                  el.span(null, ' ' + m.text) :
+                  // If system message
+                  ''
               );
             })
           )

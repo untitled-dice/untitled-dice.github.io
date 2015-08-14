@@ -21,7 +21,8 @@ var config = {
   force_https_redirect: !isRunningLocally(),
   // - Configure the house edge (default is 1%)
   //   Must be between 0.0 (0%) and 1.0 (100%)
-  house_edge: 0.01
+  house_edge: 0.01,
+  chat_buffer_size: 250
 };
 
 ////////////////////////////////////////////////////////////
@@ -369,7 +370,7 @@ if (window.history && window.history.replaceState) {
 ////////////////////////////////////////////////////////////
 
 var chatStore = new Store('chat', {
-  messages: new CBuffer(250),
+  messages: new CBuffer(config.chat_buffer_size),
   waitingForServer: false,
   userList: {},
   showUserList: false,
@@ -385,6 +386,10 @@ var chatStore = new Store('chat', {
       message.id = genUuid();
       return message;
     });
+
+    // Reset the CBuffer since this event may fire multiple times,
+    // e.g. upon every reconnection to chat-server.
+    self.state.messages.empty();
 
     self.state.messages.push.apply(self.state.messages, messages);
 

@@ -1672,7 +1672,10 @@ var MyBetsTabContent = React.createClass({
               el.td(
                 null,
                 el.a(
-                  {href: config.mp_browser_uri + '/bets/' + bet.bet_id},
+                  {
+                    href: config.mp_browser_uri + '/bets/' + bet.bet_id,
+                    target: '_blank'
+                  },
                   bet.bet_id
                 )
               ),

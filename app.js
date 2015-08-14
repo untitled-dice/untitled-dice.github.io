@@ -146,6 +146,45 @@ helpers.getPrecision = function(num) {
     (match[2] ? +match[2] : 0));
 };
 
+/**
+ * Decimal adjustment of a number.
+ *
+ * @param {String}  type  The type of adjustment.
+ * @param {Number}  value The number.
+ * @param {Integer} exp   The exponent (the 10 logarithm of the adjustment base).
+ * @returns {Number} The adjusted value.
+ */
+helpers.decimalAdjust = function(type, value, exp) {
+  // If the exp is undefined or zero...
+  if (typeof exp === 'undefined' || +exp === 0) {
+    return Math[type](value);
+  }
+  value = +value;
+  exp = +exp;
+  // If the value is not a number or the exp is not an integer...
+  if (isNaN(value) || !(typeof exp === 'number' && exp % 1 === 0)) {
+    return NaN;
+  }
+  // Shift
+  value = value.toString().split('e');
+  value = Math[type](+(value[0] + 'e' + (value[1] ? (+value[1] - exp) : -exp)));
+  // Shift back
+  value = value.toString().split('e');
+  return +(value[0] + 'e' + (value[1] ? (+value[1] + exp) : exp));
+}
+
+helpers.round10 = function(value, exp) {
+  return helpers.decimalAdjust('round', value, exp);
+};
+
+helpers.floor10 = function(value, exp) {
+  return helpers.decimalAdjust('floor', value, exp);
+};
+
+helpers.ceil10 = function(value, exp) {
+  return helpers.decimalAdjust('ceil', value, exp);
+};
+
 ////////////////////////////////////////////////////////////
 
 // A weak MoneyPot API abstraction
@@ -1641,8 +1680,8 @@ var MyBetsTabContent = React.createClass({
               el.td(
                 {style: {color: bet.profit > 0 ? 'green' : 'red'}},
                 bet.profit > 0 ?
-                  '+' + bet.profit/100 :
-                  bet.profit/100
+                  '+' + helpers.round10(bet.profit/100, -2) :
+                  helpers.round10(bet.profit/100, -2)
               ),
               // outcome
               el.td(

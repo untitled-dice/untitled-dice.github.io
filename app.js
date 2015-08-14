@@ -77,7 +77,7 @@ var helpers = {};
 // For displaying HH:MM timestamp in chat
 //
 // String (Date JSON) -> String
-helpers.formatMessageDate = function(dateJson) {
+helpers.formatDateToTime = function(dateJson) {
   var date = new Date(dateJson);
   return _.padLeft(date.getHours().toString(), 2, '0') +
     ':' +
@@ -431,17 +431,6 @@ var chatStore = new Store('chat', {
     self.emitter.emit('change', self.state);
   });
 
-  Dispatcher.registerCallback('NEW_SYSTEM_MESSAGE', function(text) {
-    console.log('[ChatStore] received NEW_SYSTEM_MESSAGE');
-    self.state.messages.push({
-      id: genUuid(),
-      text: text,
-      user: {uname: '[SYSTEM]'}
-    });
-    self.emitter.emit('change', self.state);
-    self.emitter.emit('new_message');
-  });
-
   // Message is { text: String }
   Dispatcher.registerCallback('SEND_MESSAGE', function(text) {
     console.log('[ChatStore] received SEND_MESSAGE');
@@ -518,8 +507,11 @@ var worldStore = new Store('world', {
   accessToken: access_token,
   isRefreshingUser: false,
   hotkeysEnabled: false,
-  currTab: 'MY_BETS',
+  currTab: 'ALL_BETS',
+  // TODO: Turn this into myBets or something
   bets: new CBuffer(25),
+  // TODO: Fetch list on load alongside socket subscription
+  allBets: new CBuffer(25),
   grecaptcha: undefined
 }, function() {
   var self = this;
@@ -566,9 +558,15 @@ var worldStore = new Store('world', {
     self.emitter.emit('change', self.state);
   });
 
+  // This is only for my bets? Then change to 'NEW_MY_BET'
   Dispatcher.registerCallback('NEW_BET', function(bet) {
     console.assert(typeof bet === 'object');
     self.state.bets.push(bet);
+    self.emitter.emit('change', self.state);
+  });
+
+  Dispatcher.registerCallback('NEW_ALL_BET', function(bet) {
+    self.state.allBets.push(bet);
     self.emitter.emit('change', self.state);
   });
 
@@ -987,7 +985,7 @@ var ChatBox = React.createClass({
                       fontFamily: 'monospace'
                     }
                   },
-                  helpers.formatMessageDate(m.created_at),
+                  helpers.formatDateToTime(m.created_at),
                   ' '
                 ),
                 m.user ? helpers.roleToLabelElement(m.user.role) : '',
@@ -1383,6 +1381,10 @@ var BetBoxButton = React.createClass({
             isFair: CryptoJS.SHA256(bet.secret + '|' + bet.salt).toString() === hash
           };
 
+          // Sync up with the bets we get from socket
+          bet.wager = wagerSatoshis;
+          bet.uname = worldStore.state.user.uname;
+
           Dispatcher.sendAction('NEW_BET', bet);
 
           // Update next bet hash
@@ -1615,15 +1617,29 @@ var Tabs = React.createClass({
     return el.ul(
       {className: 'nav nav-tabs'},
       el.li(
-        {className: worldStore.state.currTab === 'MY_BETS' ? 'active' : ''},
+        {className: worldStore.state.currTab === 'ALL_BETS' ? 'active' : ''},
         el.a(
           {
             href: 'javascript:void(0)',
-            onClick: this._makeTabChangeHandler('MY_BETS')
+            onClick: this._makeTabChangeHandler('ALL_BETS')
           },
-          'My Bets'
+          'All Bets'
         )
       ),
+      // Only show MY BETS tab if user is logged in
+      !worldStore.state.user ? '' :
+        el.li(
+          {className: worldStore.state.currTab === 'MY_BETS' ? 'active' : ''},
+          el.a(
+            {
+              href: 'javascript:void(0)',
+              onClick: this._makeTabChangeHandler('MY_BETS')
+            },
+            'My Bets'
+          )
+        ),
+      // Display faucet tab even to guests so that they're aware that
+      // this casino has one.
       !config.recaptcha_sitekey ? '' :
         el.li(
           {className: worldStore.state.currTab === 'FAUCET' ? 'active' : ''},
@@ -1660,10 +1676,12 @@ var MyBetsTabContent = React.createClass({
           el.tr(
             null,
             el.th(null, 'ID'),
-            el.th(null, 'Profit'),
-            el.th(null, 'Outcome'),
+            el.th(null, 'Time'),
+            el.th(null, 'User'),
+            el.th(null, 'Wager'),
             el.th(null, 'Target'),
-            config.debug ? el.th(null, 'Dump') : ''
+            el.th(null, 'Roll'),
+            el.th(null, 'Profit')
           )
         ),
         el.tbody(
@@ -1684,14 +1702,34 @@ var MyBetsTabContent = React.createClass({
                   bet.bet_id
                 )
               ),
-              // profit
+              // Time
               el.td(
-                {style: {color: bet.profit > 0 ? 'green' : 'red'}},
-                bet.profit > 0 ?
-                  '+' + helpers.round10(bet.profit/100, -2) :
-                  helpers.round10(bet.profit/100, -2)
+                null,
+                helpers.formatDateToTime(bet.created_at)
               ),
-              // outcome
+              // User
+              el.td(
+                null,
+                el.a(
+                  {
+                    href: config.mp_browser_uri + '/users/' + bet.uname,
+                    target: '_blank'
+                  },
+                  bet.uname
+                )
+              ),
+              // wager
+              el.td(
+                null,
+                helpers.round10(bet.wager/100, -2),
+                ' bits'
+              ),
+              // target
+              el.td(
+                null,
+                bet.meta.cond + ' ' + bet.meta.number.toFixed(2)
+              ),
+              // roll
               el.td(
                 null,
                 bet.outcome + ' ',
@@ -1699,25 +1737,14 @@ var MyBetsTabContent = React.createClass({
                   el.span(
                     {className: 'label label-success'}, 'Verified') : ''
               ),
-              // target
+              // profit
               el.td(
-                null,
-                bet.meta.cond + ' ' + bet.meta.number.toFixed(2)
-              ),
-              // dump
-              !config.debug ? '' :
-                el.td(
-                  null,
-                  el.pre(
-                    {
-                      style: {
-                        maxHeight: '75px',
-                        overflowY: 'auto'
-                      }
-                    },
-                    JSON.stringify(bet, null, '  ')
-                  )
-                )
+                {style: {color: bet.profit > 0 ? 'green' : 'red'}},
+                bet.profit > 0 ?
+                  '+' + helpers.round10(bet.profit/100, -2) :
+                  helpers.round10(bet.profit/100, -2),
+                ' bits'
+              )
             );
           }).reverse()
         )
@@ -1841,6 +1868,214 @@ var FaucetTabContent = React.createClass({
   }
 });
 
+// props: { bet: Bet }
+var BetRow = React.createClass({
+  displayName: 'BetRow',
+  render: function() {
+    var bet = this.props.bet;
+    return el.tr(
+      {},
+      // bet id
+      el.td(
+        null,
+        el.a(
+          {
+            href: config.mp_browser_uri + '/bets/' + bet.bet_id,
+            target: '_blank'
+          },
+          bet.bet_id
+        )
+      ),
+      // Time
+      el.td(
+        null,
+        helpers.formatDateToTime(bet.created_at)
+      ),
+      // User
+      el.td(
+        null,
+        el.a(
+          {
+            href: config.mp_browser_uri + '/users/' + bet.uname,
+            target: '_blank'
+          },
+          bet.uname
+        )
+      ),
+      // Wager
+      el.td(
+        null,
+        helpers.round10(bet.wager/100, -2),
+        ' bits'
+      ),
+      // Target
+      el.td(
+        {
+          className: 'text-right',
+          style: {
+            fontFamily: 'monospace'
+          }
+        },
+        bet.cond + bet.target.toFixed(2)
+      ),
+      // // Roll
+      // el.td(
+      //   null,
+      //   bet.outcome
+      // ),
+      // Visual
+      el.td(
+        {
+          style: {
+            //position: 'relative'
+            fontFamily: 'monospace'
+          }
+        },
+        // progress bar container
+        el.div(
+          {
+            className: 'progress',
+            style: {
+              minWidth: '100px',
+              position: 'relative',
+              marginBottom: 0,
+              // make it thinner than default prog bar
+              height: '10px'
+            }
+          },
+          el.div(
+            {
+              className: 'progress-bar ' +
+                (bet.profit >= 0 ?
+                 'progress-bar-success' : 'progress-bar-grey') ,
+              style: {
+                float: bet.cond === '<' ? 'left' : 'right',
+                width: bet.cond === '<' ?
+                  bet.target.toString() + '%' :
+                  (100 - bet.target).toString() + '%'
+              }
+            }
+          ),
+          el.div(
+            {
+              style: {
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: bet.outcome.toString() + '%',
+                borderRight: '3px solid #333',
+                height: '100%'
+              }
+            }
+          )
+        ),
+        // arrow container
+        el.div(
+          {
+            style: {
+              position: 'relative',
+              width: '100%',
+              height: '15px'
+            }
+          },
+          // arrow
+          el.div(
+            {
+              style: {
+                position: 'absolute',
+                top: 0,
+                left: (bet.outcome - 1).toString() + '%'
+              }
+            },
+            el.div(
+              {
+                style: {
+                  width: '5em',
+                  marginLeft: '-10px'
+                }
+              },
+              // el.span(
+              //   //{className: 'glyphicon glyphicon-triangle-top'}
+              //   {className: 'glyphicon glyphicon-arrow-up'}
+              // ),
+              el.span(
+                {style: {fontFamily: 'monospace'}},
+                '' + bet.outcome
+              )
+            )
+          )
+        )
+      ),
+      // Profit
+      el.td(
+        {
+          style: {
+            color: bet.profit > 0 ? 'green' : 'red',
+            paddingLeft: '50px'
+          }
+        },
+        bet.profit > 0 ?
+          '+' + helpers.round10(bet.profit/100, -2) :
+          helpers.round10(bet.profit/100, -2),
+        ' bits'
+      )
+    );
+  }
+});
+
+var AllBetsTabContent = React.createClass({
+  displayName: 'AllBetsTabContent',
+  _onStoreChange: function() {
+    this.forceUpdate();
+  },
+  componentDidMount: function() {
+    worldStore.on('change', this._onStoreChange);
+  },
+  componentWillUnmount: function() {
+    worldStore.off('change', this._onStoreChange);
+  },
+  render: function() {
+    return el.div(
+      null,
+      el.table(
+        {className: 'table'},
+        el.thead(
+          null,
+          el.tr(
+            null,
+            el.th(null, 'ID'),
+            el.th(null, 'Time'),
+            el.th(null, 'User'),
+            el.th(null, 'Wager'),
+            el.th({className: 'text-right'}, 'Target'),
+            // el.th(null, 'Roll'),
+            el.th(null, 'Outcome'),
+            el.th(
+              {
+                style: {
+                  paddingLeft: '50px'
+                }
+              },
+              'Profit'
+            )
+          )
+        ),
+          React.createElement(
+            React.addons.CSSTransitionGroup,
+            {
+              transitionName: 'bet-row',
+              component: 'tbody',
+              transitionLeave: false
+            },
+            worldStore.state.allBets.toArray().map(function(bet) {
+              return React.createElement(BetRow, { bet: bet, key: bet.bet_id });
+            }).reverse()
+          )
+      )
+    );
+  }
+});
+
 var TabContent = React.createClass({
   displayName: 'TabContent',
   _onStoreChange: function() {
@@ -1858,6 +2093,8 @@ var TabContent = React.createClass({
         return React.createElement(FaucetTabContent, null);
       case 'MY_BETS':
         return React.createElement(MyBetsTabContent, null);
+      case 'ALL_BETS':
+        return React.createElement(AllBetsTabContent, null);
       default:
         alert('Unsupported currTab value: ', worldStore.state.currTab);
         break;
@@ -2001,6 +2238,18 @@ function connectToChatServer() {
       Dispatcher.sendAction('USER_LEFT', user);
     });
 
+    socket.on('new_bet', function(bet) {
+      console.log('[socket] New bet:', bet);
+
+      // Ignore bets that aren't of kind "simple_dice".
+      if (bet.kind !== 'simple_dice') {
+        console.log('[weird] received bet from socket that was NOT a simple_dice bet');
+        return;
+      }
+
+      Dispatcher.sendAction('NEW_ALL_BET', bet);
+    });
+
     // Received when your client doesn't comply with chat-server api
     socket.on('client_error', function(text) {
       console.warn('[socket] Client error:', text);
@@ -2012,7 +2261,7 @@ function connectToChatServer() {
     var authPayload = {
       app_id: config.app_id,
       access_token: worldStore.state.accessToken,
-      subscriptions: ['CHAT', 'DEPOSITS']
+      subscriptions: ['CHAT', 'DEPOSITS', 'BETS']
     };
 
     socket.emit('auth', authPayload, function(err, data) {

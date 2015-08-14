@@ -22,7 +22,9 @@ var config = {
   // - Configure the house edge (default is 1%)
   //   Must be between 0.0 (0%) and 1.0 (100%)
   house_edge: 0.01,
-  chat_buffer_size: 250
+  chat_buffer_size: 250,
+  // - The amount of bets to show on screen in each tab
+  bet_buffer_size: 25
 };
 
 ////////////////////////////////////////////////////////////
@@ -188,7 +190,9 @@ helpers.ceil10 = function(value, exp) {
 
 ////////////////////////////////////////////////////////////
 
-// A weak MoneyPot API abstraction
+// A weak Moneypot API abstraction
+//
+// Moneypot's API docs: https://www.moneypot.com/api-docs
 var MoneyPot = (function() {
 
   var o = {};
@@ -198,14 +202,18 @@ var MoneyPot = (function() {
   // method: 'GET' | 'POST' | ...
   // endpoint: '/tokens/abcd-efgh-...'
   var noop = function() {};
-  var makeMPRequest = function(method, bodyParams, endpoint, callbacks) {
+  var makeMPRequest = function(method, bodyParams, endpoint, callbacks, overrideOpts) {
 
     if (!worldStore.state.accessToken)
       throw new Error('Must have accessToken set to call MoneyPot API');
 
-    var url = config.mp_api_uri + '/' + o.apiVersion + endpoint +
-              '?access_token=' + worldStore.state.accessToken;
-    $.ajax({
+    var url = config.mp_api_uri + '/' + o.apiVersion + endpoint;
+
+    if (worldStore.state.accessToken) {
+      url = url + '?access_token=' + worldStore.state.accessToken;
+    }
+
+    var ajaxOpts = {
       url:      url,
       dataType: 'json', // data type of response
       method:   method,
@@ -216,9 +224,21 @@ var MoneyPot = (function() {
         'Content-Type': 'text/plain'
       },
       // Callbacks
-      success:  callbacks.success  || noop,
-      error:    callbacks.error    || noop,
+      success:  callbacks.success || noop,
+      error:    callbacks.error || noop,
       complete: callbacks.complete || noop
+    };
+
+    $.ajax(_.merge({}, ajaxOpts, overrideOpts || {}));
+  };
+
+  o.listBets = function(callbacks) {
+    var endpoint = '/list-bets';
+    makeMPRequest('GET', undefined, endpoint, callbacks, {
+      data: {
+        app_id: config.app_id,
+        limit: config.bet_buffer_size
+      }
     });
   };
 
@@ -509,9 +529,9 @@ var worldStore = new Store('world', {
   hotkeysEnabled: false,
   currTab: 'ALL_BETS',
   // TODO: Turn this into myBets or something
-  bets: new CBuffer(25),
+  bets: new CBuffer(config.bet_buffer_size),
   // TODO: Fetch list on load alongside socket subscription
-  allBets: new CBuffer(25),
+  allBets: new CBuffer(config.bet_buffer_size),
   grecaptcha: undefined
 }, function() {
   var self = this;
@@ -567,6 +587,12 @@ var worldStore = new Store('world', {
 
   Dispatcher.registerCallback('NEW_ALL_BET', function(bet) {
     self.state.allBets.push(bet);
+    self.emitter.emit('change', self.state);
+  });
+
+  Dispatcher.registerCallback('INIT_ALL_BETS', function(bets) {
+    console.assert(_.isArray(bets));
+    self.state.allBets.push.apply(self.state.allBets, bets);
     self.emitter.emit('change', self.state);
   });
 
@@ -1689,17 +1715,17 @@ var MyBetsTabContent = React.createClass({
           worldStore.state.bets.toArray().map(function(bet) {
             return el.tr(
               {
-                key: bet.bet_id
+                key: bet.bet_id || bet.id
               },
               // bet id
               el.td(
                 null,
                 el.a(
                   {
-                    href: config.mp_browser_uri + '/bets/' + bet.bet_id,
+                    href: config.mp_browser_uri + '/bets/' + (bet.bet_id || bet.id),
                     target: '_blank'
                   },
-                  bet.bet_id
+                  bet.bet_id || bet.id
                 )
               ),
               // Time
@@ -1880,10 +1906,10 @@ var BetRow = React.createClass({
         null,
         el.a(
           {
-            href: config.mp_browser_uri + '/bets/' + bet.bet_id,
+            href: config.mp_browser_uri + '/bets/' + (bet.bet_id || bet.id),
             target: '_blank'
           },
-          bet.bet_id
+          bet.bet_id || bet.id
         )
       ),
       // Time
@@ -2063,7 +2089,7 @@ var AllBetsTabContent = React.createClass({
         el.tbody(
           null,
           worldStore.state.allBets.toArray().map(function(bet) {
-            return React.createElement(BetRow, { bet: bet, key: bet.bet_id });
+            return React.createElement(BetRow, { bet: bet, key: bet.bet_id || bet.id });
           }).reverse()
         )
       )
@@ -2180,6 +2206,16 @@ if (!worldStore.state.accessToken) {
   MoneyPot.generateBetHash({
     success: function(data) {
       Dispatcher.sendAction('SET_NEXT_HASH', data.hash);
+    }
+  });
+  // Fetch latest all-bets to populate the all-bets tab
+  MoneyPot.listBets({
+    success: function(bets) {
+      console.log('[MoneyPot.listBets]:', bets);
+      Dispatcher.sendAction('INIT_ALL_BETS', bets.reverse());
+    },
+    error: function(err) {
+      console.error('[MoneyPot.listBets] Error:', err);
     }
   });
 }

@@ -1,0 +1,12 @@
+/* 
+    Put your style/CSS customizations here.
+    It's loaded after all the other CSS files, so any CSS rules here
+    will override rules in other files.
+ */
+
+/* The following example turns the background to yellow if you uncomment it. */
+
+body {
+  /* background-color: #f1c40f; */
+}
+
